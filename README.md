@@ -6,4 +6,4 @@ Usually, alignments in BAM files are sorted either by reference (i.e. pseudo-chr
 
 Blocks of alignments - from reads that originate from the **same strand** - are then all aligned together, simply considering the genomic coordinates Then a consensus sequence and associated CIGAR line are computed. If the mapping (stranded) region overlaps with some known genomic features, their ID is also provided. Yeahh, parsing all that data in clean gff3 compliant files, we can visualize it with most genome browsers.
 
-Presently, only the consensus sequence is extracted, choosing at every genomic position the most common nucleotide. I may consider in some future to build every possible transcript, using a graph-based method. Is it really a good idea ?
+Presently, only the consensus sequence is extracted, choosing at every genomic position the most common nucleotide. I may consider in some future to build every possible transcript, using a graph-based method. Is it really a good idea ??..
