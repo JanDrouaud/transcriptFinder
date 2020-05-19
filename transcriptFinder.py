@@ -1,4 +1,6 @@
 ```python
+import collections, HTSeq, itertools, multiprocessing, pathlib, pysam, random, struct, zlib
+
 ######################################################################################################
 def rndTmpFileName(tmpDirName='/tmp'):
   return tmpDirName+'/'+''.join(random.choices(string.digits,k=20))
@@ -16,7 +18,7 @@ def buildGas(gffFp=None,log=True):
 def starFunc(args):
   if args[-1]: wlog(functionCallInfo(frame=inspect.currentframe()))
   out=(lambda x:x[0](*x[1:]))(args)
-  wlog(out)
+  if args[-1]: wlog(out)
   return out
 
 ######################################################################################################
@@ -124,7 +126,7 @@ def getGenomicAlns(tag=None,inputBamFp=None,pairRanksFpsList=None,featsGas=None,
       for refId,pairRanksFp in pairRanksFpsList:
         wlog('getting matches on '+refId+' for '+tag)
         dictOfNtPosLists=dict((strand,list()) for strand in strands) ; gffDictsDeque=collections.deque() ; cnt=0
-        for alnsPair in bamHybridSort(tag=tag,pairRanksFp=pairRanksFp,rankedSamIterator=enumerate(pysam.AlignmentFile(inputBamFp))):
+        for alnsPair in bamHybridSort(tag=tag,pairRanksFp=pairRanksFp,rankedSamIterator=enumerate(pysam.AlignmentFile(inputBamFp).fetch(refId))):
           strand=flagToStrandDict[alnsPair[0].flag]
           ntPosList=list(list(itertools.chain(*ll)) for ll in zip(*(getNtPosList(aln=aln) for aln in alnsPair)))
           if dictOfNtPosLists[strand]==[]:
