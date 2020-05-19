@@ -1,5 +1,18 @@
 ```python
 ######################################################################################################
+def rndTmpFileName(tmpDirName='/tmp'):
+  return tmpDirName+'/'+''.join(random.choices(string.digits,k=20))
+
+######################################################################################################
+def buildGas(gffFp=None,log=True):
+  if log: wlog(functionCallInfo(frame=inspect.currentframe()))
+  genes=HTSeq.GenomicArrayOfSets("auto",stranded=False)
+  for feature in HTSeq.GFF_Reader(str(gffFp)):
+    if feature.type in ('gene'):
+      genes[feature.iv]+=(feature.attr['ID'],feature.iv.strand)
+  return genes
+
+######################################################################################################
 def starFunc(args):
   if args[-1]: wlog(functionCallInfo(frame=inspect.currentframe()))
   out=(lambda x:x[0](*x[1:]))(args)
