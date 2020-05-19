@@ -10,11 +10,11 @@ Presently, only the consensus sequence is extracted, choosing at every genomic p
 
 Now, technical specifications:
 * python and python packages version:
-  *python 3.6.7
-  *pysam 0.15.2
-  *HTSeq 0.11.2
-*hardware:
-  *12 cpu Intel(R) Xeon(R) CPU E5-2609 v3 @ 1.90GHz
-  *65892288 kB RAM
-*datasets: twelve holding respectively 44, 52, 36, 39, 38, 29, 40, 43, 35, 27, 27, 28 millions alignments
+  * python 3.6.7
+  * pysam 0.15.2
+  * HTSeq 0.11.2
+* hardware:
+  * 12 cpu Intel(R) Xeon(R) CPU E5-2609 v3 @ 1.90GHz
+  * 65892288 kB RAM
+* datasets: twelve holding respectively 44, 52, 36, 39, 38, 29, 40, 43, 35, 27, 27, 28 millions alignments
 with mixed single-end / paired-ends reads in averaged proportion 5 / 2.
