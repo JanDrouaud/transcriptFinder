@@ -1,5 +1,4 @@
-```ruby
-
+```python
 import collections, io, itertools, pathlib, pysam, struct, zlib
 
 ######################################################################################################
@@ -50,5 +49,4 @@ def bamHybridSort(pysamIterator=None):
   for alnsPair in alnsPairsList: yield alnsPair
   assert decompData==b''
   pairRanksStream.close()
-  
   ```
