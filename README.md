@@ -18,5 +18,7 @@ Now, technical specifications:
   * 65892288 kB RAM
 * datasets: twelve holding respectively 44, 52, 36, 39, 38, 29, 40, 43, 35, 27, 27, 28 millions alignments
 with mixed single-end / paired-ends reads in averaged proportion 5 / 2.
+* genome : seven pseudo-chromosomes respectively 372, 428, 438, 446, 579, 480, 491 Mb long plus 14267 scaffolds with size in range 713-2423209 Kb.
+* running time :
 
 Enjoy trying to run this code and please don't neglect to share experience feedback !
