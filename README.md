@@ -1,6 +1,6 @@
 # A set of memory economical functions for fast parallel assembly of genome mapped RNA-seq reads
 
-Well, say we have to cope with a very large genome, human for example. Say we have a set of BAM files holding alignments of stranded RNA-seq reads to the genome sequence. We want to dig out transcriptomic data, that is the **sequence** of the transcripts which are actually present in the sample tissue/organ/organism of interest.
+Well, say we have to cope with a very large genome, human for example. Say we have a set of BAM files holding alignments of stranded RNA-seq reads mapped onto the genome sequence. We want to dig out transcriptomic data, that is the **sequence** of the transcripts which are actually present in the sample tissue/organ/organism of interest.
 
 Usually, alignments in BAM files are sorted either by reference (i.e. pseudo-chromosome/scaffold/contig) ID, then coordinate, or by read name. For the purpose of grouping together all alignments that map "overlappingly" to the genome sequence, we have first to perform a kind of **hybrid sorting**: alignments are sorted by reference ID / coordinate only if their come from a single-end read or the first aligned member of paired-ends reads. The second member of paired-ends reads, that map farther than the first one, is placed - in that hybrid sorting method - immediately next to its kin.
 
