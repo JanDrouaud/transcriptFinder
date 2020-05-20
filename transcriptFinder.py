@@ -25,10 +25,12 @@ def starFunc(args):
 def parallelGetAlns(inputBamFpsDict=None,featsGas=None,outputGffAlnsFpDict=None,cpu=None,log=True):
   if log: wlog(functionCallInfo(frame=inspect.currentframe()))
   if not all(fp.is_file() and fp.stat().st_size>0 for fp in outputGffAlnsFpDict.values()):
+    # first create the files holding the packed, compressed pairs of ranks : one per BAM file and per reference ID
+    # use a random order list of args to multiprocessing, so as to avoid concurrent processing large chunks of data
     argsList=\
       (lambda ll:random.sample(ll, k=len(ll)))\
       (list(itertools.chain.from_iterable(\
-        list((getHybridSortedPairRanks,k,v,refId,workDirPaths['tmp']) for refId in pysam.AlignmentFile(v).references) \
+        list((getHybridSortedPairRanks,k,v,refId,workDirPaths['tmp'],False) for refId in pysam.AlignmentFile(v).references) \
         for k,v in inputBamFpsDict.items())))
     wlog('parallelGetFaAlns: multiprocessing getHybridSortedPairRanks')
     with multiprocessing.Pool(processes=cpu) as pool:
@@ -37,6 +39,7 @@ def parallelGetAlns(inputBamFpsDict=None,featsGas=None,outputGffAlnsFpDict=None,
         for k,g in itertools.groupby(sorted(pool.imap_unordered(starFunc,argsList),key=lambda x:(x[0],x[1])),key=lambda x:x[0]))
       pool.close() ; pool.join()
     wlog('compressedHybridSortedPairRanksDict created')
+    # second use the packed, compressed pairs of ranks data to get the sets of overlapping reads and yield consensus alignments and corresponding sequence in gff3 files
     argsList=list((getGenomicAlns,k,inputBamFpsDict[k],v,featsGas,outputGffAlnsFpDict[k],True) for k,v in compressedHybridSortedPairRanksDict.items())
     wlog('parallelGetFaAlns: multiprocessing getGenomicAlns')
     with multiprocessing.Pool(processes=cpu) as pool:
@@ -46,7 +49,7 @@ def parallelGetAlns(inputBamFpsDict=None,featsGas=None,outputGffAlnsFpDict=None,
   return None if not all(fp.is_file() and fp.stat().st_size>0 for fp in outputGffAlnsFpDict.values()) else outputGffAlnsFpDict
 
 ######################################################################################################
-def getHybridSortedPairRanks(tag=None,inputBamFp=None,refId=None,tmpDir=None):
+def getHybridSortedPairRanks(tag=None,inputBamFp=None,refId=None,tmpDir=None,log=False):
   pairRanksFileName=rndTmpFileName(tmpDirName=str(tmpDir))
   rankedSamIterator=enumerate(pysam.AlignmentFile(inputBamFp).fetch(refId))
   with open(pairRanksFileName,'wb') as fh:
@@ -63,7 +66,7 @@ def bamHybridSort(tag=None,pairRanksFp=None,rankedSamIterator=None):
     alnsPairsList=list()
     # each alnRanksPair require 8 bytes (two 4 bytes integer)
     alnsPairsNumber=len(decompData)//8
-    # process the pairs of alns, yielding each aln
+    # process the alnRanksPairs, returning a list of alnsPairs
     for alnRanksPair in list(itertools.zip_longest(*[iter(struct.unpack(str(alnsPairsNumber*2)+'I',decompData[:alnsPairsNumber*8]))]*2)):
       while rank<alnRanksPair[0]: rank,aln1=next(rankedSamIterator)
       if not(alnRanksPair[1]): alnsPairsList.append((aln1,))
@@ -74,6 +77,8 @@ def bamHybridSort(tag=None,pairRanksFp=None,rankedSamIterator=None):
     return decompData[alnsPairsNumber*8:],rankedSamIterator,rank,alnsPairsList
   with pairRanksFp.open('rb') as fh:
     decompressor=zlib.decompressobj(wbits=-15) ; decompData=b'' ; rank=-1
+    # iteratively (until end of file) read compressed packed data, holding pairs of aln ranks (first one absolute, second one relative to the first one)
+    # decompress, unpack, then process pairs of ranks to yield pairs of aln for each
     chunk=fh.read(2048)
     while chunk:
       decompData+=decompressor.decompress(chunk)
@@ -91,11 +96,13 @@ def getGenomicAlns(tag=None,inputBamFp=None,pairRanksFpsList=None,featsGas=None,
   if log: wlog(functionCallInfo(frame=inspect.currentframe()))
   ######################################################################################################
   def getNtPosList(aln=None):
+    # return à list of (genomic position,nucleotide)
     return \
-      (lambda ll:list(zip(*((pos,nt) for pos,nt in functools.reduce(lambda x,y:x+[y] if y[0] else x[:-1]+[(x[-1][0],x[-1][1]+y[1])],ll[1:],[ll[0]])))))\
+      (lambda ll:list(((pos,nt) for pos,nt in functools.reduce(lambda x,y:x+[y] if y[0] else x[:-1]+[(x[-1][0],x[-1][1]+y[1])],ll[1:],[ll[0]]))))\
       (list((p[1],aln.query_alignment_sequence[p[0]] if p[0]!=None else 'N') for p in aln.get_aligned_pairs()))
   ######################################################################################################
   def getGffDict(readsBlock=None,refId=None,strand=None):
+    # build the consensus sequence, the CIGAR line, storing all data in a gff compliant dict
     ll1,ll2,ll3=list(zip(*(\
       (lambda tt,T:(pos,tt[0] if (tt[1]/T)>0.5 else 'X',tt[1] if not(tt[0] in ('N','X')) else 0))\
       (counter.most_common(1)[0],sum(counter.values())) for pos,counter in readsBlock)))
@@ -108,6 +115,7 @@ def getGenomicAlns(tag=None,inputBamFp=None,pairRanksFpsList=None,featsGas=None,
     return gffDict
   ######################################################################################################
   def fileWriteGffAndFaAlns(gffDict=None,featsGas=None,outputGffAlnsFh=None,outputFaAlnsFh=None,cnt=None):
+    # update the counter, complete the annotation, exporte the gff line and fasta sequence to files
     cnt+=1
     if refId in featsGas.chrom_vectors:
       gffDictIv=HTSeq.GenomicInterval(chrom=refId,start=gffDict['start'],end=gffDict['end'],strand=gffDict['strand'])
@@ -127,25 +135,30 @@ def getGenomicAlns(tag=None,inputBamFp=None,pairRanksFpsList=None,featsGas=None,
         wlog('getting matches on '+refId+' for '+tag)
         dictOfNtPosLists=dict((strand,list()) for strand in strands) ; gffDictsDeque=collections.deque() ; cnt=0
         for alnsPair in bamHybridSort(tag=tag,pairRanksFp=pairRanksFp,rankedSamIterator=enumerate(pysam.AlignmentFile(inputBamFp).fetch(refId))):
+          # this is the main loop ; process iteratively pairs of alignments
+          # once a group of overlapping alignments is complete, extract consensus sequence, CIGAR line, etc and write to files
           strand=flagToStrandDict[alnsPair[0].flag]
-          ntPosList=list(list(itertools.chain(*ll)) for ll in zip(*(getNtPosList(aln=aln) for aln in alnsPair)))
+          ntPosList=list(itertools.chain.from_iterable(getNtPosList(aln=aln) for aln in alnsPair))
           if dictOfNtPosLists[strand]==[]:
-            dictOfNtPosLists[strand]=[ntPosList[0][-1],ntPosList]
+            dictOfNtPosLists[strand]=[ntPosList[-1][0],dict((p,collections.Counter(n)) for p,n in ntPosList)]
           elif ntPosList[0][0]<=dictOfNtPosLists[strand][0]:
-            for i in (0,1): dictOfNtPosLists[strand][1][i].extend(ntPosList[i])
-            dictOfNtPosLists[strand][0]=max(dictOfNtPosLists[strand][0],ntPosList[0][-1])
+            for p,n in ntPosList:
+              if p in dictOfNtPosLists[strand][1].keys(): dictOfNtPosLists[strand][1][p].update(n)
+              else: dictOfNtPosLists[strand][1].update([(p,collections.Counter(n))])
+            dictOfNtPosLists[strand][0]=max(dictOfNtPosLists[strand][0],ntPosList[-1][0])
           else:
-            readsBlock=(lambda dd1:(list(dd1[p].update({n:1}) for p,n in zip(*dictOfNtPosLists[strand][1])),dd1)[1])(collections.defaultdict(collections.Counter))
-            readsBlock=list((pos,readsBlock[pos] if pos in readsBlock.keys() else collections.Counter({'X':1})) for pos in range(min(readsBlock.keys()),max(readsBlock.keys())+1))
-            dictOfNtPosLists[strand]=[ntPosList[0][-1],ntPosList]
+            # holes along the genomic range covered by the group of alignments are filled with 'X'
+            readsBlock=(lambda dd:list((p,dd[p] if p in dd.keys() else collections.Counter('X')) for p in range(min(dd.keys()),max(dd.keys())+1)))(dictOfNtPosLists[strand][1])
+            dictOfNtPosLists[strand]=[ntPosList[-1][0],dict((p,collections.Counter(n)) for p,n in ntPosList)]
             gffDictsDeque.append(getGffDict(readsBlock=readsBlock,refId=refId,strand=strand))
-            gffDictsDeque=collections.deque(sorted(gffDictsDeque,key=lambda dd:dd['start']))            
+            gffDictsDeque=collections.deque(sorted(gffDictsDeque,key=lambda dd:dd['start']))
+            # write position ascending alignments, considering BOTH STRANDS  
             while len(set(dd['strand'] for dd in gffDictsDeque))>1:
               cnt=fileWriteGffAndFaAlns(gffDict=gffDictsDeque.popleft(),featsGas=featsGas,outputGffAlnsFh=outputGffAlnsFh,outputFaAlnsFh=tmpOutputFaAlnsFh,cnt=cnt)
+        # finish processing the data for the current reference ID
         for strand in strands:
           if dictOfNtPosLists[strand]:
-            readsBlock=(lambda dd1:(list(dd1[p].update({n:1}) for p,n in zip(*dictOfNtPosLists[strand][1])),dd1)[1])(collections.defaultdict(collections.Counter))
-            readsBlock=list((pos,readsBlock[pos] if pos in readsBlock.keys() else collections.Counter({'X':1})) for pos in range(min(readsBlock.keys()),max(readsBlock.keys())+1))
+            readsBlock=(lambda dd:list((p,dd[p] if p in dd.keys() else collections.Counter('X')) for p in range(min(dd.keys()),max(dd.keys())+1)))(dictOfNtPosLists[strand][1])
             gffDictsDeque.append(getGffDict(readsBlock=readsBlock,refId=refId,strand=strand))
         gffDictsDeque=collections.deque(sorted(gffDictsDeque,key=lambda dd:dd['start']))
         for gffDict in gffDictsDeque:
