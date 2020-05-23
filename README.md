@@ -9,13 +9,13 @@ Blocks of alignments - from reads that originate from the **same strand** - are 
 Presently, only the consensus sequence is extracted, choosing at every genomic position the most common nucleotide. I may consider in some future to build every possible transcript, using a graph-based method. I'm still not sure that it would really be useful..
 
 Now, technical specifications:
+* hardware:
+  * 12 cpu Intel(R) Xeon(R) CPU E5-2609 v3 @ 1.90GHz
+  * 65892288 KB RAM
 * python and python packages version:
   * python 3.6.7
   * pysam 0.15.2
   * HTSeq 0.11.2
-* hardware:
-  * 12 cpu Intel(R) Xeon(R) CPU E5-2609 v3 @ 1.90GHz
-  * 65892288 KB RAM
 * datasets: twelve holding respectively 44, 52, 36, 39, 38, 29, 40, 43, 35, 27, 27, 28 millions alignments
 with mixed single-end / paired-ends reads in averaged proportion 5 / 4.
 * genome : seven pseudo-chromosomes respectively 372, 428, 438, 446, 579, 480, 491 Mb long plus 14267 scaffolds with size in range 0.7-2423 Kb.
