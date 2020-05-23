@@ -1,4 +1,4 @@
-# A set of memory economical functions for fast parallel assembly of genome mapped RNA-seq reads
+# A set of memory economical python functions for fast parallel assembly of genome mapped RNA-seq reads
 
 Well, say we have to cope with a very large genome, human for example. Say we have a set of BAM files holding alignments of stranded RNA-seq reads mapped onto the genome sequence. We want to dig out transcriptomic data, that is the **sequence** of the transcripts which are actually present in the sample tissue/organ/organism of interest.
 
