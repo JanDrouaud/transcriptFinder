@@ -22,4 +22,4 @@ with mixed single-end / paired-ends reads in averaged proportion 5 / 4.
 * running time : 4548 min.
 * peak memory usage : 4540 Mb.
 
-Enjoy trying to run this code and please don't neglect to share experience feedback !
+Enjoy running this code and please don't neglect to share experience feedback !
