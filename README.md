@@ -15,11 +15,11 @@ Now, technical specifications:
   * HTSeq 0.11.2
 * hardware:
   * 12 cpu Intel(R) Xeon(R) CPU E5-2609 v3 @ 1.90GHz
-  * 65892288 kB RAM
+  * 65892288 KB RAM
 * datasets: twelve holding respectively 44, 52, 36, 39, 38, 29, 40, 43, 35, 27, 27, 28 millions alignments
 with mixed single-end / paired-ends reads in averaged proportion 5 / 4.
 * genome : seven pseudo-chromosomes respectively 372, 428, 438, 446, 579, 480, 491 Mb long plus 14267 scaffolds with size in range 0.7-2423 Kb.
 * running time : 4548 min.
-* peak memory usage : 4540 Mb.
+* peak memory usage : 4540 MB.
 
 Enjoy running this code and please don't neglect to share experience feedback !
